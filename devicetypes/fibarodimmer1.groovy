@@ -21,7 +21,7 @@
 
 metadata {
 	// Automatically generated. Make future change here.
-	definition (name: "Fibaro Dimmer 1 UK 2-Way Switch (buttons)", namespace: "smartthings", author: "SmartThings, Elnar Hajiyev") {
+	definition (name: "Fibaro Dimmer 1", namespace: "smartthings", author: "SmartThings, Elnar Hajiyev") {
 		capability "Switch Level"
 		capability "Actuator"
 		capability "Switch"
@@ -29,11 +29,11 @@ metadata {
 		capability "Refresh"
 		capability "Sensor"
         capability "Configuration"
-        capability "Button"
 
-        command		"resetParams2StDefaults"
-        command		"listCurrentParams"
-        command		"updateZwaveParam"
+		//Extending Fibaro Dimmer 1 devices with scene attribute
+        attribute "scene", "number"
+
+        command	  "configureParams"
 
         fingerprint deviceId: "0x1101", inClusters: "0x72,0x86,0x70,0x85,0x8E,0x26,0x7A,0x27,0x73,0xEF,0x26,0x2B"
 	}
@@ -71,17 +71,197 @@ metadata {
 		standardTile("refresh", "device.switch", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
 			state "default", label:"", action:"refresh.refresh", icon:"st.secondary.refresh"
 		}
-        standardTile("resetParams2StDefaults", "device.configure", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-			state "configure", label:'', action:"resetParams2StDefaults", icon:"st.secondary.configure"
+        standardTile("configureParams", "device.configure", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
+			state "configure", label:'', action:"configureParams", icon:"st.secondary.configure"
 		}
 
 		main(["switch"])
 		details(["switch", "refresh",
            "levelSliderControl",
-           "resetParams2StDefaults"
-           /* uncomment when you need to reset dimmer parameters "resetParams2StDefaults"*/
+           "configureParams"
         ])
 	}
+
+    preferences {
+	    input name: "param1", type: "enum", defaultValue: "255", required: true,
+            options: ["0" : "0",
+                      "1" : "1",
+                      "2" : "2",
+                      "255" : "255"],
+            title: "1. Activate / deactivate functions ALL ON / ALL OFF.\n" +
+                   "Available settings:\n" +
+                   "0 = All ON not active, All OFF not active,\n" +
+                   "1 = All ON not active, All OFF active,\n" +
+                   "2 = All ON active, All OFF not active,\n" +
+                   "255 = All ON active, All OFF active.\n" +
+                   "Default value: 255."
+
+        input name: "param6", type: "number", range: "0..2", defaultValue: "0", required: true,
+            title: "6. Sending commands to control devices assigned to 1st association group (key no. 1).\n" +
+                   "Available settings:\n" +
+                   "0 = commands are sent when device is turned on and off.\n" +
+                   "1 = commands are sent when device is turned off. Enabling device does not send control commands. Double-clicking key sends 'turn on' command, dimmers memorize the last saved state (e.g. 50% brightness).\n" +
+                   "2 = commands are sent when device is turned off. Enabling device does not send control commands. Double-clicking key sends 'turn on' command and dimmers are set to 100% brightness.\n" +
+                   "Default value: 1.\n\n" +
+                   "NOTE: Parameter 15 value must be set to 1 to work properly. This activates the double-click functionality - dimmer/roller shutter control."
+
+        input name: "param7", type: "number", range: "0..1", defaultValue: "1", required: true,
+            title: "7. Checking the device status before sending a control frame from the key no. 2.\n" +
+                   "Available settings:\n" +
+                   "0 = Device status is not checked.\n" +
+                   "1 = Device status is checked.\n" +
+                   "Default value: 1.\n\n" +
+                   "Info: Key no. 2 is not represented by any physical device expect of devices on association list. " +
+                   "This functionality prevents of lack of reaction on pressing key no. 2 through polling devices from list one by one and checking thier actual states.\n" +
+                   "It is not possible to check the device status before sending a control frame from the key no. 2 if roller blind switch is chosen in parameter 14 (value 2)\n" +
+                   "If devices state is checked before sending asociation then parameter 19 should be set to value 0."
+
+        input name: "param8", type: "number", range: "1..99", defaultValue: "1", required: true,
+            title: "8. The percentage of a dimming step at automatic control.\n" +
+                   "Available settings: 1-99\n" +
+                   "Default value: 1."
+
+        input name: "param9", type: "number", range: "1..255", defaultValue: "5", required: true,
+            title: "9. Time of manually moving the Dimmer between the extreme dimming values.\n" +
+                   "Available settings: 1-255 (10ms – 2.5s)\n" +
+                   "Default value: 5."
+
+        input name: "param10", type: "number", range: "0..255", defaultValue: "1", required: true,
+            title: "10. Time of Automatic moving the Dimmer between the extreme dimming values.\n" +
+                   "Available settings: 0-255 (0ms – 2.5s)\n" +
+                   "0 - this value disables the smooth change in light intensity\n" +
+                   "Default value: 1.\n\n" +
+                   "NOTE value 0 is required for inductive and capacitive devices unsuitable for dimming, (e.g. fluorescent lamps , motors etc.)."
+
+        input name: "param11", type: "number", range: "1..99", defaultValue: "1", required: true,
+            title: "11. The percentage of a dimming step at manual control.\n" +
+                   "Available settings: 1-99\n" +
+                   "Default value: 1."
+
+        input name: "param12", type: "number", range: "2..99", defaultValue: "99", required: true,
+            title: "12. Maximum Dimmer level control.\n" +
+                   "Available settings: 2-99\n" +
+                   "Default value: 99."
+
+        input name: "param13", type: "number", range: "1..98", defaultValue: "2", required: true,
+            title: "13. Minimum Dimmer level control\n" +
+                   "Available settings: 1-98\n" +
+                   "Default value: 2.\n\n" +
+                   "NOTE: The maximum level may not be lower than the minimum level.\n" +
+                   "Recommended values of parameters 12 and 13 (max and min level) for controlling the devices are as follows:\n" +
+                   "- AC motors [min 60%, max 99%]\n" +
+                   "- fluorescent lamps, fluorescent tubes, LED [min 98%, max 99%] [parameter 10 set to 0]"
+
+        input name: "param14", type: "number", range: "0..2", defaultValue: "0", required: true,
+            title: "14. Switch type. Choose between momentary switch and toggle switch.\n" +
+                   "Available settings:\n" +
+                   "0 = momentary switch,\n" +
+                   "1 = toggle switch,\n" +
+                   "2 = Roller blind switch (UP / DOWN) - two switch keys operate the Dimmer.\n" +
+                   "Default value: 0."
+
+        input name: "param15", type: "number", range: "0..1", defaultValue: "1", required: true,
+            title: "15. Double click option (set lightning at 100%).\n" +
+                   "Available settings:\n" +
+                   "0 = Double click disabled,\n" +
+                   "1 = Double click enabled.\n" +
+                   "Default value: 1."
+
+        input name: "param16", type: "number", range: "0..1", defaultValue: "1", required: true,
+            title: "16. Saving the state of the device after a power failure. The Dimmer will return to the last position before power failure.\n" +
+                   "Available settings:\n" +
+                   "0 = the Dimmer does not save the state after a power failure, it returns to 'off' position,\n" +
+                   "1 = the Dimmer saves its state before power failure.\n" +
+                   "Default value: 1."
+
+        input name: "param17", type: "number", range: "0..1", defaultValue: "0", required: true,
+            title: "17. The function of 3 - way switch, provides the option to double key no. 1. " +
+                   "The Dimmer may control two toggle push-buttons or an infinite number of momentary push-buttons.\n" +
+                   "Available settings:\n" +
+                   "0 = the function of 3-way switch is disabled,\n" +
+                   "1 = the function of 3-way switch is enabled.\n" +
+                   "Default value: 0."
+
+        input name: "param18", type: "number", range: "0..1", defaultValue: "0", required: true,
+            title: "18. The function of synchronizing the light level for associated devices. The Dimmer communicates the position to the associated device.\n" +
+                   "Available settings:\n" +
+                   "0 = function disabled,\n" +
+                   "1 = function enabled.\n" +
+                   "Default value: 0."
+
+        input name: "param19", type: "number", range: "0..1", defaultValue: "0", required: true,
+            title: "19. Assigns bistable key status to the device status.\n" +
+                   "Available settings:\n" +
+                   "0 = [On / Off] device changes status on key status change.\n" +
+                   "1 = Device status depends on key status: ON when the key is ON, OFF when the key is OFF.\n"
+                   "Default value: 0.\n\n" +
+                   "Info: Remote control from Fibaro System Is Still Possible. This function is useful When you want display status of external devices, e.g. Motion Sensor, in Fibaro System."
+
+        input name: "param30", type: "number", range: "0..3", defaultValue: "3", required: true,
+            title: "30. Alarm of any type (general alarm, water flooding alarm, smoke alarm: CO, CO2, temperature alarm).\n" +
+                   "Available settings:\n" +
+                   "0 = DEACTIVATION - the device does not respond to alarm data frames,\n" +
+                   "1 = ALARM DIMMER ON - the device turns on after detecting an alarm,\n" +
+                   "2 = ALARM DIMMER OFF - the device turns off after detecting an alarm,\n" +
+                   "3 = ALARM FLASHING the device periodically changes its status to the opposite, when it detects an alarm within 10 min."
+                   "Default value: 3."
+
+        input name: "param39", type: "number", range: "1..65535", defaultValue: "600", required: true,
+            title: "39. Active flashing alarm time.\n" +
+                   "Available settings: [1-65535][ms]\n" +
+                   "Default value: 600."
+
+        input name: "param41", type: "number", range: "0..1", defaultValue: "0", required: true,
+            title: "41. Scene activation functionality.\n" +
+                   "The device offers the possibility of sending commands compatible with Command class scene activation. " +
+                   "Information is sent to devices assigned to association group no. 3. " +
+                   "Controllers such as Home Center 2 are able to interpret such commands and based on these commands they activate scenes, to which specific scene IDs have been assigned. " +
+                   "The user may expand the functionality of the button connected to inputs S1 and S2 by distinguishing the actions of keys connected to those inputs. " +
+                   "For example: double click would activate the scene “goodnight” and triple click would activate the scene “morning”.\n" +
+                   "Available settings:\n" +
+                   "0 = functionality deactivated,\n" +
+                   "1 = functionality activated.\n" +
+                   "Default value: 0.\n\n" +
+                   "Scene ID is determined as follows:\n" +
+                   "Momentary switch:\n" +
+                   "Input S1: holding down ID 12 (option inactive in case of roller blind switch), " +
+                   "releasing ID 13, double click ID 14 (depends on parameters 15 value - 1 = double click active), " +
+                   "triple click ID 15, one click ID 16.\n" +
+                   "Input S2: holding down ID 22 (option inactive in case of roller blind switch), " +
+                   "releasing ID 23, double click ID 24 (depends on parameters 15 value - 1 = double click active) option inactive in case of roller blind switch, " +
+                   "triple click ID 25, one click ID 26.\n\n" +
+                   "Toggle switch:\n" +
+                   "Input S1: holding down ID 12, releasing ID 13, double click ID 14 (depends on parameters 15 value - 1 = double click active), triple click ID 15. " +
+                   "If parameter no. 19 is set to 0: single click ID16 is sent. If parameter no. 19 is set to 1 following IDs are sent: switch from “off” to “on” ID 10, switch from “on” to “off” ID 11.\n" +
+                   "Input S2: holding down ID 22, releasing ID 23, double click ID 24, (depends on parameters 15 value - 1 = double click active), triple click ID 25. " +
+                   "If parameter no.19 set to 0 (default), then one click ID 26 is sent. If parameter no.19 is set to 1 following IDs are sent: switch from “off” to “on” ID 20, switch from “on” to “off” ID 21.\n\n" +
+                   "Roller blind switch:\n" +
+                   "Input S1, Turning on the light: switch from “off” to “on” ID 10, double click ID 14 (depends of parameter 15 value 1 - double click functionality), " +
+                   "triple click ID 15, brighten ID 17, releasing ID 13.\n" +
+                   "Input S2, Turning off the light: switch from “on” to “off” ID 11, triple click ID 25, dim ID 18, releasing ID 13."
+
+        input name: "param20", type: "number", range: "101..170", defaultValue: "110", required: true,
+            title: "ADVANCED FUNCTION\n\n" +
+                   "20. The function enabling the change of control impulse length. " +
+                   "This function will enable decreasing the minimum level of the Dimmer by extending the control impulse. " +
+                   "By changing the minimum level, the user may completely dim LED bulbs. Not all LED bulbs available on the market have the dimming option.\n" +
+                   "Available settings:\n" +
+                   "Default values: 110 for 50Hz (UK), 101 for 60Hz (USA).\n\n"+
+                   "WARNING!\nWrong setting of the function may cause incorrect operation of the Dimmer."
+
+        input name: "paramAssociationGroup1", type: "bool", defaultValue: false, required: true,
+             title: "The Dimmer 1 provides the association of three groups.\n\n" +
+                    "1 = 1st group is assigned to key no. 1,\n" +
+                    "Default value: true"
+
+        input name: "paramAssociationGroup2", type: "bool", defaultValue: false, required: true,
+             title: "2nd group is assigned to key no. 2\n" +
+                    "Default value: true"
+
+        input name: "paramAssociationGroup3", type: "bool", defaultValue: true, required: true,
+             title: "3rd group for controllers such Home Center for state reporting,\n" +
+                    "Default value: false"
+    }
 }
 
 def parse(String description) {
@@ -113,19 +293,11 @@ def parse(String description) {
 }
 
 def createEvent(physicalgraph.zwave.commands.sceneactivationv1.SceneActivationSet cmd, Map map) {
-	log.debug( "Dimming Duration: $cmd.dimmingDuration")
-    log.debug( "Button code: $cmd.sceneId")
+	log.debug( "Scene ID: $cmd.sceneId")
+    log.debug( "Dimming Duration: $cmd.dimmingDuration")
 
-    if ( cmd.sceneId == 14 ) {
-        Integer button = 1
-        sendEvent(name: "button", value: "doubleTappedS1", data: [buttonNumber: button], descriptionText: "$device.displayName button $button was double tapped", isStateChange: true)
-        log.debug( "Button $button was double tapped" )
-    }
-    else if ( cmd.sceneId == 16 ) {
-        Integer button = 1
-        sendEvent(name: "button", value: "tappedS1", data: [buttonNumber: button], descriptionText: "$device.displayName button $button was tapped", isStateChange: true)
-        log.debug( "Button $button was tapped" )
-    }
+    sendEvent(name: "scene", value: "$cmd.sceneId", data: [switchType: "$settings.param20"], descriptionText: "Scene id $cmd.sceneId was activated", isStateChange: true)
+    log.debug( "Scene id $cmd.sceneId was activated" )
 }
 
 def createEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd, Map item1) {
@@ -195,10 +367,10 @@ def doCreateEvent(physicalgraph.zwave.Command cmd, Map item1) {
 	result
 }
 
-//def createEvent(physicalgraph.zwave.Command cmd,  Map map) {
+def createEvent(physicalgraph.zwave.Command cmd,  Map map) {
 	// Handles any Z-Wave commands we aren't interested in
-//	log.debug "UNHANDLED COMMAND $cmd"
-//}
+	log.debug "UNHANDLED COMMAND $cmd"
+}
 
 def on() {
 	log.info "on"
@@ -228,133 +400,57 @@ def refresh() {
 	zwave.switchMultilevelV1.switchMultilevelGet().format()
 }
 
- /**
- * Configures the device to settings needed by SmarthThings at device discovery time. Assumes
- * device is already at default parameter settings.
- *
- * @param none
- *
- * @return none
- */
-def configure() {
-	log.debug "Configuring Device..."
-	def cmds = []
-
-	// send associate to group 3 to get sensor data reported only to hub
-	cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId:[zwaveHubNodeId]).format()
-
-	delayBetween(cmds, 500)
-}
-
-
 def createEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd, Map item1) {
 
 	log.debug "${device.displayName} parameter '${cmd.parameterNumber}' with a byte size of '${cmd.size}' is set to '${cmd.configurationValue}'"
 
 }
 
- /**
- * This method will allow the user to update device parameters (behavior) from an app.
- * the user can write his/her own app to envoke this method.
- * No type or value checking is done to compare to what device capability or reaction.
- * It is up to user to read OEM documentation prio to envoking this method.
- *
- * <p>THIS IS AN ADVANCED OPERATION. USE AT YOUR OWN RISK! READ OEM DOCUMENTATION!
- *
- * @param List[paramNumber:80,value:10,size:1]
- *
- *
- * @return none
- */
-def updateZwaveParam(params) {
-	if ( params ) {
-        def pNumber = params.paramNumber
-        def pSize	= params.size
-        def pValue	= [params.value]
-        log.debug "Make sure device is awake and in recieve mode"
-        log.debug "Updating ${device.displayName} parameter number '${pNumber}' with value '${pValue}' with size of '${pSize}'"
-
-		def cmds = []
-        cmds << zwave.configurationV1.configurationSet(configurationValue: pValue, parameterNumber: pNumber, size: pSize).format()
-        cmds << zwave.configurationV1.configurationGet(parameterNumber: pNumber).format()
-        delayBetween(cmds, 1000)
-    }
-}
-
- /**
- * Sets all of available Fibaro parameters back to the device defaults except for what
- * SmartThings needs to support the stock functionality as released.
- *
- * <p>THIS IS AN ADVANCED OPERATION. USE AT YOUR OWN RISK! READ OEM DOCUMENTATION!
- *
- * @param none
- *
- * @return none
- */
-def resetParams2StDefaults() {
-	log.debug "Resetting ${device.displayName} parameters to SmartThings compatible defaults"
+ def configureParams() {
+	log.debug "Configuring ${device.displayName} parameters"
 	def cmds = []
-	cmds << zwave.configurationV1.configurationSet(configurationValue: [255], parameterNumber: 1,  size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [0],   parameterNumber: 6,  size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 7,  size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 8,  size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [5],   parameterNumber: 9,  size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [0],   parameterNumber: 10, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 11, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [99],  parameterNumber: 12, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [2],   parameterNumber: 13, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 14, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 15, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 16, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 17, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [0],   parameterNumber: 18, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [0],   parameterNumber: 19, size: 1).format()
-    //Param 20 is different for 50Hz or 60 Hz uncomment the line that will reflect the power frequency used
-    //cmds << zwave.configurationV1.configurationSet(configurationValue: [101],   parameterNumber: 20, size: 1).format() //60 Hz (US)
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [110],   parameterNumber: 20, size: 1).format() //50 Hz (UK)
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [3],   parameterNumber: 30, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [600],   parameterNumber: 39, size: 1).format()
-    //Param 40 not needed by SmartThings
-    //cmds << zwave.configurationV1.configurationSet(configurationValue: [0],   parameterNumber: 40, size: 1).format()
-    cmds << zwave.configurationV1.configurationSet(configurationValue: [1],   parameterNumber: 41, size: 1).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 1, size: 1, scaledConfigurationValue: param1.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 6, size: 1, scaledConfigurationValue: param6.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 7, size: 1, scaledConfigurationValue: param7.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 8, size: 1, scaledConfigurationValue: param8.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 9, size: 1, scaledConfigurationValue: param9.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 10, size: 1, scaledConfigurationValue: param10.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 11, size: 1, scaledConfigurationValue: param11.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 13, size: 1, scaledConfigurationValue: param13.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 15, size: 1, scaledConfigurationValue: param15.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 16, size: 1, scaledConfigurationValue: param16.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 19, size: 1, scaledConfigurationValue: param19.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 20, size: 1, scaledConfigurationValue: param20.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 30, size: 1, scaledConfigurationValue: param30.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 39, size: 1, scaledConfigurationValue: param39.toInteger()).format()
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: 41, size: 1, scaledConfigurationValue: param41.toInteger()).format()
 
-    delayBetween(cmds, 500)
-}
-
- /**
- * Lists all of available Fibaro parameters and thier current settings out to the
- * logging window in the IDE. This will be called from the "Fibaro Tweaker" or
- * user's own app.
- *
- * <p>THIS IS AN ADVANCED OPERATION. USE AT YOUR OWN RISK! READ OEM DOCUMENTATION!
- *
- * @param none
- *
- * @return none
- */
-def listCurrentParams() {
-	log.debug "Listing of current parameter settings of ${device.displayName}"
-    def cmds = []
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 1).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 6).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 7).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 8).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 9).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 10).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 11).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 12).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 13).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 14).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 15).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 16).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 17).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 18).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 19).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 20).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 30).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 39).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 40).format()
-    cmds << zwave.configurationV1.configurationGet(parameterNumber: 41).format()
+        // Register for Group 1
+        if(paramAssociationGroup1) {
+        	cmds << zwave.associationV2.associationSet(groupingIdentifier:1, nodeId: [zwaveHubNodeId]).format()
+        }
+        else {
+        	cmds << zwave.associationV2.associationRemove(groupingIdentifier:1, nodeId: [zwaveHubNodeId]).format()
+        }
+        // Register for Group 2
+        if(paramAssociationGroup2) {
+        	cmds << zwave.associationV2.associationSet(groupingIdentifier:2, nodeId: [zwaveHubNodeId]).format()
+        }
+        else {
+        	cmds << zwave.associationV2.associationRemove(groupingIdentifier:2, nodeId: [zwaveHubNodeId]).format()
+        }
+        // Register for Group 3
+        if(paramAssociationGroup3) {
+        	cmds << zwave.associationV2.associationSet(groupingIdentifier:3, nodeId: [zwaveHubNodeId]).format()
+        }
+        else {
+        	cmds << zwave.associationV2.associationRemove(groupingIdentifier:3, nodeId: [zwaveHubNodeId]).format()
+        }
 
 	delayBetween(cmds, 500)
+}
+
+def updated() {
+	log.debug "updated()"
+	response(["delay 2000"] + configureParams() + refresh())
 }
