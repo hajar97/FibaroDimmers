@@ -1,5 +1,5 @@
 /**
- *  Copyright 2015 SmartThings
+ *  Copyright 2016 SmartThings
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -26,6 +26,7 @@ metadata {
         attribute "scene", "number"
 
 		command "reset"
+        command "changeSingleParamAfterSecure"
         command "configureAfterSecure"
 
         fingerprint deviceId: "0x1001", inClusters: "0x5E, 0x20, 0x86, 0x72, 0x26, 0x5A, 0x59, 0x85, 0x73, 0x98, 0x7A, 0x56, 0x70, 0x31, 0x32, 0x8E, 0x60, 0x75, 0x71, 0x27, 0x22, 0xEF, 0x2B"
@@ -673,6 +674,14 @@ def setLevel(level) {
 		zwave.basicV1.basicSet(value: level),
 		zwave.switchMultilevelV1.switchMultilevelGet()
 	], 5000)
+}
+
+def changeSingleParamAfterSecure(paramNum, paramSize, paramValue) {
+	log.debug "changeSingleParamAfterSecure(paramNum: $paramNum, paramSize: $paramSize, paramValue: $paramValue)"
+    def cmds = secureSequence([
+    	zwave.configurationV1.configurationSet(parameterNumber: paramNum, size: paramSize, scaledConfigurationValue: paramValue)
+        ])
+    cmds
 }
 
 def configureAfterSecure() {

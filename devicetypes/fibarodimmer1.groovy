@@ -33,6 +33,7 @@ metadata {
 		//Extending Fibaro Dimmer 1 devices with scene attribute
         attribute "scene", "number"
 
+        command   "changeSingleParam"
         command	  "configureParams"
 
         fingerprint deviceId: "0x1101", inClusters: "0x72,0x86,0x70,0x85,0x8E,0x26,0x7A,0x27,0x73,0xEF,0x26,0x2B"
@@ -404,6 +405,13 @@ def createEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport
 
 	log.debug "${device.displayName} parameter '${cmd.parameterNumber}' with a byte size of '${cmd.size}' is set to '${cmd.configurationValue}'"
 
+}
+
+def changeSingleParam(paramNum, paramSize, paramValue) {
+	log.debug "changeSingleParam(paramNum: $paramNum, paramSize: $paramSize, paramValue: $paramValue)"
+    def cmds = []
+    cmds << zwave.configurationV1.configurationSet(parameterNumber: paramNum, size: paramSize, scaledConfigurationValue: paramValue)
+    cmds
 }
 
  def configureParams() {
